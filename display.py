@@ -1,6 +1,7 @@
-import sys
 import tkinter as tk
 from PIL import Image, ImageFont, ImageDraw
+import numpy as np
+import math
 
 PIXEL_SIZE = 6 # Border is included
 BORDER_WIDTH = 1
@@ -10,59 +11,98 @@ HEIGHT = 35
 WINDOW_WIDTH = PIXEL_SIZE * WIDTH
 WINDOW_HEIGHT = PIXEL_SIZE * HEIGHT
 
-FONT_SIZE = 120
+FONT_SIZE = HEIGHT * 0.92
 
-class LTT(tk.Frame):
+class App(tk.Frame):
 	def __init__(self, root: tk.Tk):
 		super().__init__(root)
-
 		root.title(u"LED Train Ticker")
 		root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
+		self.canvas = tk.Canvas(
+			root, 
+			width=WINDOW_WIDTH, 
+			height=WINDOW_HEIGHT, 
+			bg="#111111", 
+			highlightthickness=0
+		)
+		self.canvas.place(x=0, y=0)
 
-		self.canvas = tk.Canvas(root, width=WINDOW_WIDTH, height=WINDOW_HEIGHT, bg="#111", highlightthickness=0)
-		self.canvas.place(x=0,y=0)
 
+		text = "本日はご乗車いただき誠にありがとうございます。"
+		font = ImageFont.truetype("ヒラギノ明朝 ProN.ttc", FONT_SIZE)
+		self.image_width = math.ceil(font.getlength(text))
+		self.image = Image.new(
+			"1", 
+			(self.image_width, HEIGHT), 
+			color=1
+		)
+		ImageDraw.Draw(self.image).text(
+			(0,1), 
+			text=text, 
+			font=font, 
+			fill=0
+		)
 
-		image = Image.new("1", (WIDTH, HEIGHT), color=1)
-		draw = ImageDraw.Draw(image)
+		self.pos = 0
 
-		self.font = ImageFont.truetype("ヒラギノ明朝 ProN.ttc", 32)
-		self.pos = WIDTH
-		draw.text((self.pos,1), text="本日はご乗車いただき誠にありがとうございます。", font=self.font, fill=0)
-
-		for x in range(WIDTH):
-			for y in range(HEIGHT):
-				x1, y1 = x * PIXEL_SIZE + BORDER_WIDTH, y * PIXEL_SIZE + BORDER_WIDTH
-				x2, y2 = (x+1) * PIXEL_SIZE - BORDER_WIDTH, (y+1) * PIXEL_SIZE - BORDER_WIDTH
-				if image.getpixel((x,y)) == 0:
-					self.canvas.create_rectangle(x1, y1+1, x2, y2-1, fill="#ffbf00", width=0)
-					self.canvas.create_rectangle(x1+1, y1, x2-1, y2, fill="#ffbf00", width=0)
-				else:
-					self.canvas.create_rectangle(x1, y1+1, x2, y2-1, fill="#555", width=0)
-					self.canvas.create_rectangle(x1+1, y1, x2-1, y2, fill="#555", width=0)
+		self.tick_draw()
 
 		root.bind("<KeyPress>", self.key_event)
 
+	def tick_left(self):
+		if self.pos >= self.image_width:
+			return
+		update_width = WIDTH
+		if self.pos + WIDTH >= self.image_width:
+			update_width = self.image_width - self.pos - 1
+			for y in range(HEIGHT):
+				self.canvas.itemconfig(self.rect_ids[y][update_width][0], fill="#555555")
+				self.canvas.itemconfig(self.rect_ids[y][update_width][1], fill="#555555")
+
+
+		update_num = 0
+		for y in range(HEIGHT):
+			current = self.image.getpixel((self.pos, y))
+			for x in range(update_width):
+				next = self.image.getpixel((self.pos + x + 1, y))
+				if current != next:
+					update_num += 1
+					fill_color = "#ffbf00" if next == 0 else "#555555"
+					self.canvas.itemconfig(self.rect_ids[y][x][0], fill=fill_color)
+					self.canvas.itemconfig(self.rect_ids[y][x][1], fill=fill_color)
+				current = next
+		
+		self.pos += 1
+		print(update_num)
+
+	def tick_draw(self):
+		self.canvas.delete("all")
+		self.rect_ids = []
+
+		draw_width = WIDTH
+		if self.pos + WIDTH >= self.image_width:
+			draw_width = self.image_width - self.pos
+		for y in range(HEIGHT):
+			row = []
+			for x in range(WIDTH):
+				x1, y1 = x * PIXEL_SIZE + BORDER_WIDTH, y * PIXEL_SIZE + BORDER_WIDTH
+				x2, y2 = (x+1) * PIXEL_SIZE - BORDER_WIDTH, (y+1) * PIXEL_SIZE - BORDER_WIDTH
+				fill_color = "#ffbf00" if self.image.getpixel((self.pos + x, y)) == 0 and x < draw_width else "#555555"
+				id1 = self.canvas.create_rectangle(x1, y1+1, x2, y2-1, fill=fill_color, width=0)
+				id2 = self.canvas.create_rectangle(x1+1, y1, x2-1, y2, fill=fill_color, width=0)
+				row.append([id1, id2])
+			self.rect_ids.append(row)
+
+
 	def key_event(self, e):
 		key = e.keysym
+		if key == "Left":
+			self.tick_left()
 		if key == "space":
-			image = Image.new("1", (WIDTH, HEIGHT), color=1)
-			draw = ImageDraw.Draw(image)
-			self.pos -= 1
-			draw.text((self.pos,1), text="本日はご乗車いただき誠にありがとうございます。", font=self.font, fill=0)
-			for x in range(WIDTH):
-				for y in range(HEIGHT):
-					x1, y1 = x * PIXEL_SIZE + BORDER_WIDTH, y * PIXEL_SIZE + BORDER_WIDTH
-					x2, y2 = (x+1) * PIXEL_SIZE - BORDER_WIDTH, (y+1) * PIXEL_SIZE - BORDER_WIDTH
-					if image.getpixel((x,y)) == 0:
-						self.canvas.create_rectangle(x1, y1+1, x2, y2-1, fill="#ffbf00", width=0)
-						self.canvas.create_rectangle(x1+1, y1, x2-1, y2, fill="#ffbf00", width=0)
-					else:
-						self.canvas.create_rectangle(x1, y1+1, x2, y2-1, fill="#555", width=0)
-						self.canvas.create_rectangle(x1+1, y1, x2-1, y2, fill="#555", width=0)
+			self.tick_draw()
 
 
 if __name__ == "__main__":
 	root = tk.Tk()
-	app = LTT(root)
+	app = App(root)
 	root.mainloop()
