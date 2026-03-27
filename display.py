@@ -2,6 +2,7 @@ import tkinter as tk
 from PIL import Image, ImageFont, ImageDraw
 import numpy as np
 import math
+from control_panel import ControlPanel
 
 PIXEL_SIZE = 6 # Border is included
 BORDER_WIDTH = 1
@@ -112,6 +113,9 @@ class App(tk.Frame):
 				self.tick_draw()
 			if key == "space":
 				self.ticking = False
+			if key == "e":
+				ctrl_panel = tk.Toplevel()
+				ControlPanel(ctrl_panel)
 			if key == "z":
 				self.master.title(u"LED Train Ticker { Press ← or → to start... }")
 				self.waiting_key = "z"
