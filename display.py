@@ -11,12 +11,13 @@ HEIGHT = 35
 WINDOW_WIDTH = PIXEL_SIZE * WIDTH
 WINDOW_HEIGHT = PIXEL_SIZE * HEIGHT
 
-FONT_SIZE = HEIGHT * 0.92
+FONT_SIZE = HEIGHT
 
 class App(tk.Frame):
 	def __init__(self, root: tk.Tk):
 		super().__init__(root)
 		root.title(u"LED Train Ticker")
+		root.resizable(False, False)
 		root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
 		self.canvas = tk.Canvas(
 			root, 
@@ -37,7 +38,7 @@ class App(tk.Frame):
 			color=1
 		)
 		ImageDraw.Draw(self.image).text(
-			(0,1), 
+			(0,0), 
 			text=text, 
 			font=font, 
 			fill=0
@@ -47,6 +48,7 @@ class App(tk.Frame):
 
 		self.tick_draw()
 
+		self.waiting_key = None
 		root.bind("<KeyPress>", self.key_event)
 
 	def tick_left(self):
@@ -59,21 +61,17 @@ class App(tk.Frame):
 				self.canvas.itemconfig(self.rect_ids[y][update_width][0], fill="#555555")
 				self.canvas.itemconfig(self.rect_ids[y][update_width][1], fill="#555555")
 
-
-		update_num = 0
 		for y in range(HEIGHT):
 			current = self.image.getpixel((self.pos, y))
 			for x in range(update_width):
 				next = self.image.getpixel((self.pos + x + 1, y))
 				if current != next:
-					update_num += 1
 					fill_color = "#ffbf00" if next == 0 else "#555555"
 					self.canvas.itemconfig(self.rect_ids[y][x][0], fill=fill_color)
 					self.canvas.itemconfig(self.rect_ids[y][x][1], fill=fill_color)
 				current = next
 		
 		self.pos += 1
-		print(update_num)
 
 	def tick_draw(self):
 		self.canvas.delete("all")
@@ -93,13 +91,30 @@ class App(tk.Frame):
 				row.append([id1, id2])
 			self.rect_ids.append(row)
 
+	def ticking_left(self):
+		if not self.ticking:
+			return
+		self.tick_left()
+		self.master.after(25, self.ticking_left)
 
 	def key_event(self, e):
 		key = e.keysym
-		if key == "Left":
-			self.tick_left()
-		if key == "space":
-			self.tick_draw()
+		if self.waiting_key:
+			if key == "Left":
+				self.ticking = True
+				self.ticking_left()
+			self.master.title(u"LED Train Ticker")
+			self.waiting_key = None
+		else:
+			if key == "Left":
+				self.tick_left()
+			if key == "r":
+				self.tick_draw()
+			if key == "space":
+				self.ticking = False
+			if key == "z":
+				self.master.title(u"LED Train Ticker { Press ← or → to start... }")
+				self.waiting_key = "z"
 
 
 if __name__ == "__main__":
