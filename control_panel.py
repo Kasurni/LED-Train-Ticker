@@ -21,7 +21,7 @@ class ControlPanel(tk.Frame):
         # Header
         label_head = ttk.Label(
             root, 
-            text="Tick Texts",
+            text="Tick Blocks",
             font=("Hiragino Sans", font_size_head)
         )
         label_head.pack(anchor="nw")
@@ -42,7 +42,7 @@ class ControlPanel(tk.Frame):
 
         button_add_block = ttk.Button(
             root, 
-            text="Add text", 
+            text="Add block", 
             command=lambda: self.add_block(
                 blocks=blocks, 
                 parent=frame_blocks, 
@@ -61,13 +61,19 @@ class ControlPanel(tk.Frame):
             target_button.configure(background=color_code[1], activebackground=color_code[1]) # Button color
         return
     
+    def remove_block(self, blocks, target_block_id:int):
+        num_blocks = len(blocks)
+        target_block_index = [i for i in range(num_blocks) if blocks[i]["id"] == target_block_id][0]
+        blocks.pop(target_block_index)["widget"].destroy()
+    
     def add_block(self, blocks, parent, text, color, font):
         # Make frame as container of entry and buttons
         block = ttk.Frame(parent)
+        block_id = id(block)
         block.pack(anchor="nw", fill="x", expand=True)
         
         # Entry
-        style_name = f"{id(block)}.TEntry"
+        style_name = f"{block_id}.TEntry"
         ttk.Style().configure(style_name, foreground=color)
         text_var = tk.StringVar(value=text)
         ttk.Entry(
@@ -104,9 +110,16 @@ class ControlPanel(tk.Frame):
         button_pick_color.configure(command=lambda: self.pick_color(button_pick_color, style_name))
         button_pick_color.pack(side="left")
 
+        # Button for removing
+        ttk.Button(
+            block,
+            text="x",
+            command=lambda: self.remove_block(blocks, block_id)
+        ).pack(side="left")
+
         # Add block to list
         blocks.append(
-            {"text_var":text_var, "color":color, "widget":block}
+            {"id":block_id, "text_var":text_var, "color":color, "widget":block}
         )
 
         return
