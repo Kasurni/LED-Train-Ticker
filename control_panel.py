@@ -61,10 +61,40 @@ class ControlPanel(tk.Frame):
             target_button.configure(background=color_code[1], activebackground=color_code[1]) # Button color
         return
     
-    def remove_block(self, blocks, target_block_id:int):
+    def remove_block(self, blocks, parent, target_block_id:int):
         num_blocks = len(blocks)
-        target_block_index = [i for i in range(num_blocks) if blocks[i]["id"] == target_block_id][0]
-        blocks.pop(target_block_index)["widget"].destroy()
+        target_block_index = next(
+            (i for i in range(num_blocks) if blocks[i]["id"] == target_block_id),
+            None
+        )
+        blocks.pop(target_block_index)
+        parent.pack_slaves()[target_block_index].destroy()
+
+    def swap_blocks_above(self, blocks, parent, target_block_id:int):
+        ids = [block["id"] for block in blocks]
+        if not target_block_id in ids or ids.index(target_block_id) == 0:
+            return
+        target_block_index = ids.index(target_block_id)
+        blocks[target_block_index], blocks[target_block_index-1] = blocks[target_block_index-1], blocks[target_block_index]
+        wblocks = parent.pack_slaves()
+        for wblock in wblocks:
+            wblock.pack_forget()
+        for b in blocks:
+            wb = next((_wb for _wb in wblocks if id(_wb) == b["id"]))
+            wb.pack(anchor="nw", fill="x", expand=True)
+
+    def swap_blocks_below(self, blocks, parent, target_block_id:int):
+        ids = [block["id"] for block in blocks]
+        if not target_block_id in ids or ids.index(target_block_id) == len(ids) - 1:
+            return
+        target_block_index = ids.index(target_block_id)
+        blocks[target_block_index], blocks[target_block_index+1] = blocks[target_block_index+1], blocks[target_block_index]
+        wblocks = parent.pack_slaves()
+        for wblock in wblocks:
+            wblock.pack_forget()
+        for b in blocks:
+            wb = next((_wb for _wb in wblocks if id(_wb) == b["id"]))
+            wb.pack(anchor="nw", fill="x", expand=True)
     
     def add_block(self, blocks, parent, text, color, font):
         # Make frame as container of entry and buttons
@@ -87,12 +117,14 @@ class ControlPanel(tk.Frame):
         ttk.Button(
             block,
             text="↑",
+            command=lambda: self.swap_blocks_above(blocks, parent, block_id)
         ).pack(side="left")
 
         # Button for swaping below
         ttk.Button(
             block,
             text="↓",
+            command=lambda: self.swap_blocks_below(blocks, parent, block_id)
         ).pack(side="left")
 
         # Button for choosing text color
@@ -119,7 +151,7 @@ class ControlPanel(tk.Frame):
 
         # Add block to list
         blocks.append(
-            {"id":block_id, "text_var":text_var, "color":color, "widget":block}
+            {"id":block_id, "text_var":text_var, "color":color}
         )
 
         return
