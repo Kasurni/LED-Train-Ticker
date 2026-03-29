@@ -146,7 +146,7 @@ class ControlPanel(tk.Frame):
         ttk.Button(
             block,
             text="x",
-            command=lambda: self.remove_block(blocks, block_id)
+            command=lambda: self.remove_block(blocks, parent, block_id)
         ).pack(side="left")
 
         # Add block to list
