@@ -1,41 +1,30 @@
 import tkinter as tk
 from PIL import Image, ImageFont, ImageDraw
-import numpy as np
 import math
+import config
 from control_panel import ControlPanel
-
-PIXEL_SIZE = 6 # Border is included
-BORDER_WIDTH = 1
-WIDTH = 210
-HEIGHT = 35
-
-WINDOW_WIDTH = PIXEL_SIZE * WIDTH
-WINDOW_HEIGHT = PIXEL_SIZE * HEIGHT
-
-FONT_SIZE = HEIGHT
 
 class App(tk.Frame):
 	def __init__(self, root: tk.Tk):
 		super().__init__(root)
-		root.title(u"LED Train Ticker")
+		root.title(f"{config.TITLE}")
 		root.resizable(False, False)
-		root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
+		root.geometry(f"{config.WINDOW_WIDTH}x{config.WINDOW_HEIGHT}")
 		self.canvas = tk.Canvas(
 			root, 
-			width=WINDOW_WIDTH, 
-			height=WINDOW_HEIGHT, 
+			width=config.WINDOW_WIDTH, 
+			height=config.WINDOW_HEIGHT, 
 			bg="#111111", 
 			highlightthickness=0
 		)
 		self.canvas.place(x=0, y=0)
 
-
 		text = "本日はご乗車いただき誠にありがとうございます。"
-		font = ImageFont.truetype("ヒラギノ明朝 ProN.ttc", FONT_SIZE)
+		font = ImageFont.truetype("ヒラギノ明朝 ProN.ttc", config.GRID_HEIGHT)
 		self.image_width = math.ceil(font.getlength(text))
 		self.image = Image.new(
 			"1", 
-			(self.image_width, HEIGHT), 
+			(self.image_width, config.GRID_HEIGHT), 
 			color=1
 		)
 		ImageDraw.Draw(self.image).text(
@@ -55,14 +44,14 @@ class App(tk.Frame):
 	def tick_left(self):
 		if self.pos >= self.image_width:
 			return
-		update_width = WIDTH
-		if self.pos + WIDTH >= self.image_width:
+		update_width = config.GRID_WIDTH
+		if self.pos + config.GRID_WIDTH >= self.image_width:
 			update_width = self.image_width - self.pos - 1
-			for y in range(HEIGHT):
+			for y in range(config.GRID_HEIGHT):
 				self.canvas.itemconfig(self.rect_ids[y][update_width][0], fill="#555555")
 				self.canvas.itemconfig(self.rect_ids[y][update_width][1], fill="#555555")
 
-		for y in range(HEIGHT):
+		for y in range(config.GRID_HEIGHT):
 			current = self.image.getpixel((self.pos, y))
 			for x in range(update_width):
 				next = self.image.getpixel((self.pos + x + 1, y))
@@ -78,14 +67,14 @@ class App(tk.Frame):
 		self.canvas.delete("all")
 		self.rect_ids = []
 
-		draw_width = WIDTH
-		if self.pos + WIDTH >= self.image_width:
+		draw_width = config.GRID_WIDTH
+		if self.pos + config.GRID_WIDTH >= self.image_width:
 			draw_width = self.image_width - self.pos
-		for y in range(HEIGHT):
+		for y in range(config.GRID_HEIGHT):
 			row = []
-			for x in range(WIDTH):
-				x1, y1 = x * PIXEL_SIZE + BORDER_WIDTH, y * PIXEL_SIZE + BORDER_WIDTH
-				x2, y2 = (x+1) * PIXEL_SIZE - BORDER_WIDTH, (y+1) * PIXEL_SIZE - BORDER_WIDTH
+			for x in range(config.GRID_WIDTH):
+				x1, y1 = x * config.DOT_SIZE + config.DOT_BORDER_WIDTH, y * config.DOT_SIZE + config.DOT_BORDER_WIDTH
+				x2, y2 = (x+1) * config.DOT_SIZE - config.DOT_BORDER_WIDTH, (y+1) * config.DOT_SIZE - config.DOT_BORDER_WIDTH
 				fill_color = "#ffbf00" if self.image.getpixel((self.pos + x, y)) == 0 and x < draw_width else "#555555"
 				id1 = self.canvas.create_rectangle(x1, y1+1, x2, y2-1, fill=fill_color, width=0)
 				id2 = self.canvas.create_rectangle(x1+1, y1, x2-1, y2, fill=fill_color, width=0)

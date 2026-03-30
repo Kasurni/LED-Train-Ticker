@@ -2,58 +2,53 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import colorchooser
 from tkmacosx import Button as MacButton
+import config
 
 class ControlPanel(tk.Frame):
     def __init__(self, root:tk.Tk):
-        root.title("LED Train Ticker")
-        root.geometry("600x400")
+        root.title(f"{config.TITLE}")
+        root.geometry(f"{config.SUB_WINDOW_WIDTH}x{config.SUB_WINDOW_HEIGHT}")
         root["padx"], root["pady"] = 10, 10
 
         # Font config
-        font_size = 10
-        font_size_head = 13
-        font = tk.font.Font(
+        self.font = tk.font.Font(
             root,
             family="Hiragino Sans",
-            size=font_size
+            size=config.FONT_SIZE
         )
 
         # Header
-        label_head = ttk.Label(
+        header = ttk.Label(
             root, 
             text="Tick Blocks",
-            font=("Hiragino Sans", font_size_head)
+            font=("Hiragino Sans", config.FONT_SIZE_HEAD)
         )
-        label_head.pack(anchor="nw")
+        header.pack(anchor="nw")
 
         # Blocks container
-        frame_blocks = ttk.Frame(root)
-        frame_blocks.pack(anchor="nw", fill="x")
+        blocks_frame = ttk.Frame(root)
+        blocks_frame.pack(anchor="nw", fill="x")
 
-        blocks = []
+        self.blocks_data = []
 
         self.add_block(
-            blocks=blocks, 
-            parent=frame_blocks, 
+            frame=blocks_frame, 
             text="本日はご乗車いただき誠にありがとうございます",
             color="#ffbf00",
-            font=font
         )
 
-        button_add_block = ttk.Button(
+        add_block_button = ttk.Button(
             root, 
             text="Add block", 
             command=lambda: self.add_block(
-                blocks=blocks, 
-                parent=frame_blocks, 
+                frame=blocks_frame, 
                 text="本日はご乗車いただき誠にありがとうございます",
                 color="#ffbf00",
-                font=font
             )
         )
-        button_add_block.pack()
+        add_block_button.pack()
 
-    def pick_color(self, target_button, style_name):
+    def pick_color(self, target_button:MacButton, style_name:str):
         # Open colorpicker and get color code
         color_code = colorchooser.askcolor(initialcolor=target_button["background"])
         if color_code[1]:
@@ -61,44 +56,48 @@ class ControlPanel(tk.Frame):
             target_button.configure(background=color_code[1], activebackground=color_code[1]) # Button color
         return
     
-    def remove_block(self, blocks, parent, target_block_id:int):
-        num_blocks = len(blocks)
+    def remove_block(self, frame:ttk.Frame, target_block_id:int):
+        num_blocks = len(self.blocks_data)
         target_block_index = next(
-            (i for i in range(num_blocks) if blocks[i]["id"] == target_block_id),
+            (i for i in range(num_blocks) if self.blocks_data[i]["id"] == target_block_id),
             None
         )
-        blocks.pop(target_block_index)
-        parent.pack_slaves()[target_block_index].destroy()
+        if target_block_index:
+            self.blocks_data.pop(target_block_index)
+            frame.pack_slaves()[target_block_index].destroy()
+        return
 
-    def swap_blocks_above(self, blocks, parent, target_block_id:int):
-        ids = [block["id"] for block in blocks]
+    def swap_blocks_above(self, frame:ttk.Frame, target_block_id:int):
+        ids = [data["id"] for data in self.blocks_data]
         if not target_block_id in ids or ids.index(target_block_id) == 0:
             return
         target_block_index = ids.index(target_block_id)
-        blocks[target_block_index], blocks[target_block_index-1] = blocks[target_block_index-1], blocks[target_block_index]
-        wblocks = parent.pack_slaves()
-        for wblock in wblocks:
-            wblock.pack_forget()
-        for b in blocks:
-            wb = next((_wb for _wb in wblocks if id(_wb) == b["id"]))
-            wb.pack(anchor="nw", fill="x", expand=True)
+        self.blocks_data[target_block_index], self.blocks_data[target_block_index-1] = self.blocks_data[target_block_index-1], self.blocks_data[target_block_index]
+        blocks = frame.pack_slaves()
+        for block in blocks:
+            block.pack_forget()
+        for data in self.blocks_data:
+            block = next((b for b in blocks if id(b) == data["id"]))
+            block.pack(anchor="nw", fill="x", expand=True)
+        return
 
-    def swap_blocks_below(self, blocks, parent, target_block_id:int):
-        ids = [block["id"] for block in blocks]
+    def swap_blocks_below(self, frame:ttk.Frame, target_block_id:int):
+        ids = [data["id"] for data in self.blocks_data]
         if not target_block_id in ids or ids.index(target_block_id) == len(ids) - 1:
             return
         target_block_index = ids.index(target_block_id)
-        blocks[target_block_index], blocks[target_block_index+1] = blocks[target_block_index+1], blocks[target_block_index]
-        wblocks = parent.pack_slaves()
-        for wblock in wblocks:
-            wblock.pack_forget()
-        for b in blocks:
-            wb = next((_wb for _wb in wblocks if id(_wb) == b["id"]))
-            wb.pack(anchor="nw", fill="x", expand=True)
+        self.blocks_data[target_block_index], self.blocks_data[target_block_index+1] = self.blocks_data[target_block_index+1], self.blocks_data[target_block_index]
+        blocks = frame.pack_slaves()
+        for block in blocks:
+            block.pack_forget()
+        for data in self.blocks_data:
+            block = next((b for b in blocks if id(b) == data["id"]))
+            block.pack(anchor="nw", fill="x", expand=True)
+        return
     
-    def add_block(self, blocks, parent, text, color, font):
-        # Make frame as container of entry and buttons
-        block = ttk.Frame(parent)
+    def add_block(self, frame:ttk.Frame, text:str, color:str):
+        # Make block as container of entry and buttons
+        block = ttk.Frame(frame)
         block_id = id(block)
         block.pack(anchor="nw", fill="x", expand=True)
         
@@ -109,7 +108,7 @@ class ControlPanel(tk.Frame):
         ttk.Entry(
             block,
             textvariable=text_var,
-            font=font,
+            font=self.font,
             style=style_name
         ).pack(side="left", fill="x", expand=True)
 
@@ -117,19 +116,19 @@ class ControlPanel(tk.Frame):
         ttk.Button(
             block,
             text="↑",
-            command=lambda: self.swap_blocks_above(blocks, parent, block_id)
+            command=lambda: self.swap_blocks_above(frame, block_id)
         ).pack(side="left")
 
         # Button for swaping below
         ttk.Button(
             block,
             text="↓",
-            command=lambda: self.swap_blocks_below(blocks, parent, block_id)
+            command=lambda: self.swap_blocks_below(frame, block_id)
         ).pack(side="left")
 
         # Button for choosing text color
         initial_color = color
-        button_pick_color = MacButton(
+        pick_color_button = MacButton(
             block,
             text=" ",
             background=initial_color,
@@ -139,20 +138,19 @@ class ControlPanel(tk.Frame):
             bd=0,
             width=40,
         )
-        button_pick_color.configure(command=lambda: self.pick_color(button_pick_color, style_name))
-        button_pick_color.pack(side="left")
+        pick_color_button.configure(command=lambda: self.pick_color(pick_color_button, style_name))
+        pick_color_button.pack(side="left")
 
         # Button for removing
         ttk.Button(
             block,
             text="x",
-            command=lambda: self.remove_block(blocks, parent, block_id)
+            command=lambda: self.remove_block(frame, block_id)
         ).pack(side="left")
 
         # Add block to list
-        blocks.append(
+        self.blocks_data.append(
             {"id":block_id, "text_var":text_var, "color":color}
         )
-
         return
         
